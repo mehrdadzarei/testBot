@@ -57,6 +57,7 @@ public class MyBot extends TelegramLongPollingBot {
 		System.out.println(date.getTime()/1000 + "\tfrom computer");		
 	}
 	
+	@SuppressWarnings("deprecation")
 	public void sendToTelegram(int i) {
 		
 		System.out.println(content.size());
