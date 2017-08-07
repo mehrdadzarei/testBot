@@ -9,13 +9,15 @@ public class Main {
 	public static void main(String[] args) {
 		
 		ApiContextInitializer.init();
-		
+		MyBot bot = new MyBot();		// this object must be after the ApiContextInitializer.init();
 		TelegramBotsApi botsApi = new TelegramBotsApi();
 		
 		try {
-			botsApi.registerBot(new MyBot());
+			botsApi.registerBot(bot);
 		} catch (TelegramApiException e) {
 			e.printStackTrace();
 		}
+		
+		bot.initial();
 	}
 }

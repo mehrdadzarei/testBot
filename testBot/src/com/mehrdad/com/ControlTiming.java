@@ -7,7 +7,6 @@ public class ControlTiming extends Thread {
 
 	private Thread t = new Thread();	
 	public static Vector<Integer> timeTable = new Vector<Integer>(100,2);
-	public static Vector<Integer> done = new Vector<Integer>(100,2);
 	public static int counter = 0;
 	Date date;
 	MyBot bot;	
@@ -22,13 +21,13 @@ public class ControlTiming extends Thread {
 				
 				date = new Date();		
 				for (int i = 0; i < counter; i++)
-					if (timeTable.get(i) == date.getTime()/1000 && done.get(i) == 1){
+					if (timeTable.get(i) == date.getTime()/1000){
 						
 						bot.sendToTelegram(i);
-						done.set(i, 0);											
+						timeTable.remove(i);
+						counter--;
 					}
-				}
-
+			}
 		} catch (Exception e) {
 			
 			e.printStackTrace();
