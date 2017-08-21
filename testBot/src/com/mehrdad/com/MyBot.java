@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Vector;
@@ -18,6 +19,11 @@ import org.telegram.telegrambots.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.exceptions.TelegramApiException;
+
+import com.vdurmont.emoji.Emoji;
+import com.vdurmont.emoji.EmojiManager;
+import com.vdurmont.emoji.EmojiParser;
+import com.vdurmont.emoji.EmojiParser.EmojiTransformer;
 
 public class MyBot extends TelegramLongPollingBot {
 	
@@ -101,7 +107,7 @@ public class MyBot extends TelegramLongPollingBot {
 				String messgText = message.getText();
 				String mesgtime = "";
 				long idChat = message.getChatId();
-				
+
 				if (messgText.length() >= 5) mesgtime = messgText.subSequence(0, 5).toString();
 
 				if (messgText.equals("/start")) {
@@ -110,12 +116,13 @@ public class MyBot extends TelegramLongPollingBot {
 					List<KeyboardRow> key = new ArrayList<>();
 					KeyboardRow row = new KeyboardRow();
 					String firstName = message.getChat().getFirstName();
-					String text = "Hi " + firstName +
+					String text = EmojiParser.parseToUnicode(
+								  "Hi " + firstName + " :smile:" +
 								  "\nWellcom to Alarm Bot" +
 								  "\nat first enter your message, that you want to show you" +
 								  "\nthen enter your time, when you want to get alarm" +
 								  "\nin the final press record button" +
-								  "\nhave a nice days";
+								  "\nhave a nice days");
 
 					row.add("message");
 					row.add("time");

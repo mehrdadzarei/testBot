@@ -4,5 +4,6 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="lib" path="D:/Mehrdad/programming/Java/library/telegrambots-3.2-jar-with-dependencies.jar"/>
 	<classpathentry kind="lib" path="D:/Mehrdad/programming/Java/library/mysql-connector-java-5.1.43/mysql-connector-java-5.1.43-bin.jar"/>
+	<classpathentry kind="lib" path="D:/Mehrdad/programming/Java/library/emoji-java-3.1.3.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
