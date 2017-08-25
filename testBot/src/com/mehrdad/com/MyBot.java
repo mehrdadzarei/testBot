@@ -7,7 +7,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Vector;
@@ -16,14 +15,12 @@ import org.telegram.telegrambots.api.methods.send.SendMessage;
 import org.telegram.telegrambots.api.objects.Message;
 import org.telegram.telegrambots.api.objects.Update;
 import org.telegram.telegrambots.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.api.objects.replykeyboard.ReplyKeyboardRemove;
 import org.telegram.telegrambots.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.exceptions.TelegramApiException;
 
-import com.vdurmont.emoji.Emoji;
-import com.vdurmont.emoji.EmojiManager;
 import com.vdurmont.emoji.EmojiParser;
-import com.vdurmont.emoji.EmojiParser.EmojiTransformer;
 
 public class MyBot extends TelegramLongPollingBot {
 	
@@ -40,7 +37,7 @@ public class MyBot extends TelegramLongPollingBot {
 	private static final int d0J = 11;
 	private static final int h0 = 0;
 	private static final int m0 = 0;
-	private static final int hpy = 8766;	// One Julian year has 8766 hours: 1 year = (365.25 days) � (24 hours/day) = 8766 hours
+	private static final int hpy = 8766;	// One Julian year has 8766 hours: 1 year = (365.25 days) × (24 hours/day) = 8766 hours
 	private static final int second0 = (((y0J-1)*hpy+(6*31+(m0J-6-1)*30)*24+(d0J-1)*24+h0)*60+m0)*60;
 	
 	public MyBot() {
@@ -107,14 +104,11 @@ public class MyBot extends TelegramLongPollingBot {
 				String messgText = message.getText();
 				String mesgtime = "";
 				long idChat = message.getChatId();
-
-				if (messgText.length() >= 5) mesgtime = messgText.subSequence(0, 5).toString();
-
+				
+				if (messgText.length() >= 5) mesgtime = messgText.subSequence(messgText.length()-4, messgText.length()).toString();				
+				
 				if (messgText.equals("/start")) {
-					
-					ReplyKeyboardMarkup keyMarkup = new ReplyKeyboardMarkup();
-					List<KeyboardRow> key = new ArrayList<>();
-					KeyboardRow row = new KeyboardRow();
+															
 					String firstName = message.getChat().getFirstName();
 					String text = EmojiParser.parseToUnicode(
 								  "Hi " + firstName + " :smile:" +
@@ -123,20 +117,8 @@ public class MyBot extends TelegramLongPollingBot {
 								  "\nthen enter your time, when you want to get alarm" +
 								  "\nin the final press record button" +
 								  "\nhave a nice days");
-
-					row.add("message");
-					row.add("time");
-					key.add(row);
-						
-					row = new KeyboardRow();
-					row.add("record");
-					key.add(row);
-						
-					keyMarkup.setKeyboard(key);
-					sendMessg.setReplyMarkup(keyMarkup);
-					
-					sendIncomingMessage(sendMessg, idChat, text);
-					
+													
+					createInitialMarkup(sendMessg, idChat, text);					
 					try {
 						
 						String query = "insert into initialInformation values (default, ?, ?)";
@@ -158,14 +140,30 @@ public class MyBot extends TelegramLongPollingBot {
 							e.printStackTrace();
 						}
 					}					
-				} else if (messgText.equals("message")) {
+				} else if (mesgtime.equals("زودن")) {
 						
-					String text = "type your message like the example:" +
-								  "\n/message your message";
-						
-					sendIncomingMessage(sendMessg, idChat, text);
+					String text = EmojiParser.parseToUnicode("برای ثبت پیام جدید از گزینه های زیر استفاده نمائید");
 					
-				} else if (messgText.equals("time")) {
+					createAddingMarkup(sendMessg, idChat, text);										
+				} else if (mesgtime.equals("ه ها")) {
+					
+					String text = "ثبت شده ها";
+					
+					sendIncomingMessage(sendMessg, idChat, text);
+				
+				} else if (mesgtime.equals("هنما")) {
+					
+					String text = "راهنما";
+					
+					sendIncomingMessage(sendMessg, idChat, text);
+				
+				} else if (mesgtime.equals("پیام")) {
+					
+					String text = "پیام";
+					
+					sendIncomingMessage(sendMessg, idChat, text);
+				
+				} else if (mesgtime.equals("زمان")) {
 						
 					String text = "type your time like year-month-day-hour-minute" +
 								  "\nexample:" +
@@ -225,7 +223,7 @@ public class MyBot extends TelegramLongPollingBot {
 			
 						sendIncomingMessage(sendMessg, idChat, textError);
 					}
-				} else if (messgText.equals("record")) {
+				} else if (mesgtime.equals("خیره")) {
 										
 					try {
 							
@@ -234,11 +232,19 @@ public class MyBot extends TelegramLongPollingBot {
 							
 						e.printStackTrace();
 					}					
+				} else if (mesgtime.equals("رگشت")) {
+					
+					String text = "رویدادهای خود را ثبت کنید";
+					ReplyKeyboardRemove removeKeyMarkup = new ReplyKeyboardRemove();
+					
+					sendMessg.setReplyMarkup(removeKeyMarkup);
+					createInitialMarkup(sendMessg, idChat, text);
+				
 				} else {
 					
-					String text = "your message is incorrect" +
-								  "\nplease chose one of the buttons";
-					
+					String text = "پیام شما نادرست است \n"
+							+ "لطفا از گزینه های زیر انتخاب نمائید \n";
+										
 					sendIncomingMessage(sendMessg, idChat, text);
 				}
 			}			
@@ -247,7 +253,57 @@ public class MyBot extends TelegramLongPollingBot {
 			e.printStackTrace();			
 		}
 	}
+	
+	private void createInitialMarkup(SendMessage sendMessg, long idChat, String text) {
+		
+		ReplyKeyboardMarkup keyMarkup = new ReplyKeyboardMarkup();
+		List<KeyboardRow> key = new ArrayList<>();
+		KeyboardRow row = new KeyboardRow();
+		
+		String textMarkup = EmojiParser.parseToUnicode(" :information_source: راهنما");
+		row.add(textMarkup);
+		textMarkup = EmojiParser.parseToUnicode(" :bookmark_tabs: ثبت شده ها");
+		row.add(textMarkup);
+		textMarkup = EmojiParser.parseToUnicode(" :heavy_plus_sign: افزودن");
+		row.add(textMarkup);
+		key.add(row);
+									
+		keyMarkup.setKeyboard(key);
+		keyMarkup.setResizeKeyboard(true);
+		sendMessg.setReplyMarkup(keyMarkup);	
+		
+		sendIncomingMessage(sendMessg, idChat, text);
+	}
 
+	private void createAddingMarkup(SendMessage sendMessg, long idChat, String text) {
+		
+		ReplyKeyboardRemove removeKeyMarkup = new ReplyKeyboardRemove();
+		ReplyKeyboardMarkup keyMarkup = new ReplyKeyboardMarkup();
+		List<KeyboardRow> key = new ArrayList<>();
+		KeyboardRow row = new KeyboardRow();
+		
+		String textMarkup = EmojiParser.parseToUnicode(" :alarm_clock: زمان");
+		row.add(textMarkup);		
+		textMarkup = EmojiParser.parseToUnicode(" :email: پیام");
+		row.add(textMarkup);
+		key.add(row);
+		
+		row = new KeyboardRow();
+		
+		textMarkup = EmojiParser.parseToUnicode(" :arrow_left: برگشت");
+		row.add(textMarkup);
+		textMarkup = EmojiParser.parseToUnicode(" :heavy_plus_sign: ذخیره");
+		row.add(textMarkup);
+		key.add(row);
+									
+		keyMarkup.setKeyboard(key);
+		keyMarkup.setResizeKeyboard(true);
+		
+		sendMessg.setReplyMarkup(removeKeyMarkup);
+		sendMessg.setReplyMarkup(keyMarkup);
+		sendIncomingMessage(sendMessg, idChat, text);
+	}
+	
 	private void recordMessage(SendMessage sendMessg, long idChat, Message message) throws InvalidObjectException {
 		
 		String messText = "", timeText = "";
