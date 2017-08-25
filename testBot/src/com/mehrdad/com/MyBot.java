@@ -50,7 +50,7 @@ public class MyBot extends TelegramLongPollingBot {
 			Class.forName("com.mysql.jdbc.Driver");
 			
 			con = DriverManager.getConnection("jdbc:mysql://localhost:3306/testbot"
-					+ "?autoReconnect=true&useSSL=false", "mehrdad-zarei", "mehr.4000");
+					+ "?autoReconnect=true&useSSL=false&ampuseUnicode=true&characterEncoding=utf-8", "mehrdad-zarei", "mehr.4000");
 			st = con.createStatement();
 		} catch (Exception e) {
 			
