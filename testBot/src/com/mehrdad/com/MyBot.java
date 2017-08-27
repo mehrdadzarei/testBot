@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Vector;
 
 import org.telegram.telegrambots.api.methods.send.SendMessage;
+import org.telegram.telegrambots.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.api.objects.Message;
 import org.telegram.telegrambots.api.objects.Update;
 import org.telegram.telegrambots.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -92,7 +93,7 @@ public class MyBot extends TelegramLongPollingBot {
 		
 		return "mehrdadzareiabc";
 	}
-		
+			
 	@Override
 	public void onUpdateReceived(Update update) {
 		
@@ -136,6 +137,11 @@ public class MyBot extends TelegramLongPollingBot {
 								break;
 							case "رگشت":
 								
+								if (recMessage.get(i).length() >= (lenChatId+2))
+									
+									if (recMessage.get(i).subSequence(lenChatId, lenChatId+2).equals("ok"))
+										
+										break;
 								recMessage.remove(i);
 								break;
 							default :
@@ -173,7 +179,7 @@ public class MyBot extends TelegramLongPollingBot {
 								
 								break;
 							case "رگشت":
-								
+										
 								recTime.remove(i);
 								break;
 							default :
@@ -222,21 +228,17 @@ public class MyBot extends TelegramLongPollingBot {
 					}					
 				} else if (mesgtime.equals("زودن")) {
 						
-					text = EmojiParser.parseToUnicode("برای ثبت پیام جدید از گزینه های زیر استفاده نمائید");
+					text = EmojiParser.parseToUnicode("برای ثبت پیام جدید از گزینه های زیر استفاده نمائید :point_down: ");
 					
 					createAddingMarkup(sendMessg, idChat, text);										
 				} else if (mesgtime.equals("ه ها")) {
 					
-					text = "ثبت شده ها";
-					
-					sendIncomingMessage(sendMessg, idChat, text);
-				
+					recorded(sendMessg, idChat);
 				} else if (mesgtime.equals("هنما")) {
 					
 					text = "راهنما";
 					
-					sendIncomingMessage(sendMessg, idChat, text);
-				
+					sendIncomingMessage(sendMessg, idChat, text);				
 				} else if (mesgtime.equals("پیام")) {
 					
 					text = "لطفا پیام مورد نظر خود را بنویسید و ارسال کنید\n";
@@ -257,18 +259,17 @@ public class MyBot extends TelegramLongPollingBot {
 					text = "پیام شما ثبت شد";
 										
 					textMess = idChat + "ok" + messgText.toString();
-					if (messgText == "") textMess = idChat + "شما یک یادآور برای این زمان ثبت کرده بودید";
+					if (messgText.toString() == "") textMess = idChat + "ok" + "شما یک یادآور برای این زمان ثبت کرده بودید";
 						
 					recMessage.add(textMess);
-					sendIncomingMessage(sendMessg, idChat, text);
-					
+					sendIncomingMessage(sendMessg, idChat, text);					
 				} else if (mesgtime.equals("/time")) {
 						
 					text = "زمان شما ثبت شد";
 										
 					textTime = idChat + "ok" + messgText.toString();
 
-					if (messgText == "")
+					if (messgText.toString() == "")
 						
 						text = "زمان شما نادرست است \n"
 								+ "لطفا مانند نمونه زمان را ارسال نمائید: \n\n"
@@ -292,80 +293,87 @@ public class MyBot extends TelegramLongPollingBot {
 					ReplyKeyboardRemove removeKeyMarkup = new ReplyKeyboardRemove();
 					
 					sendMessg.setReplyMarkup(removeKeyMarkup);
-					createInitialMarkup(sendMessg, idChat, text);
-				
+					createInitialMarkup(sendMessg, idChat, text);				
+				} else if (mesgtime.equals(" تکی")) {
+					
+					text = "لطفا آیدی پیام مورد نظر را مانند نمونه زیر ارسال نمائید \n"
+							+ "id=5\n";
+										
+					sendIncomingMessage(sendMessg, idChat, text);					
+				} else if (messgText.substring(0, 3).equals("id=")) {
+										
+					String querySel = "select * from information";
+					String queryDel = "delete from information where Id = " + messgText.substring(3);
+					boolean del = false;
+					int cnt = 0;
+					
+					try {
+						
+						rs = st.executeQuery(querySel);
+						while (rs.next()) {
+							
+							if (rs.getInt("chatId") == idChat)
+								
+								if (rs.getInt("Id") == Integer.parseInt(messgText.substring(3))) {
+									
+									prSt = con.prepareStatement(queryDel);
+									prSt.execute();
+									del = true;
+									ControlTiming.counter--;
+									Thread.sleep(500);
+									ControlTiming.timeTable.remove(cnt);									
+									break;
+								}
+							cnt++;
+						}
+					} catch (Exception e) {
+						
+						e.printStackTrace();
+					} finally {
+						
+						try {
+							
+							rs.close();	
+							prSt.close();
+						} catch (Exception e) {
+							
+						}
+					}
+					text = del ? "پیام شما حذف شد" : "پیام شما یافت نشد";
+					sendIncomingMessage(sendMessg, idChat, text);					
+				} else if (mesgtime.equals(" همه")) {
+					
+					text = "آیا می خواهید همه یادآورهای ذخیره شده را حذف کنید؟ \n";
+					InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+	                List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+	                List<InlineKeyboardButton> rowInline = new ArrayList<>();
+	                
+	                rowInline.add(new InlineKeyboardButton().setText("خیر").setCallbackData("delMessageNo"));
+	                rowInline.add(new InlineKeyboardButton().setText("بله").setCallbackData("delMessageYes"));
+	                // Set the keyboard to the markup
+	                rowsInline.add(rowInline);
+	                // Add it to the message
+	                markupInline.setKeyboard(rowsInline);
+	                sendMessg.setReplyMarkup(markupInline);
+	                
+	                sendIncomingMessage(sendMessg, idChat, text);					
 				} else {
 					
-					text = "پیام شما نادرست است \n"
-							+ "لطفا از گزینه های زیر انتخاب نمائید \n";
+					text = EmojiParser.parseToUnicode("پیام شما نادرست است \n"
+							+ "لطفا از گزینه های زیر انتخاب نمائید  :point_down: ");
 										
 					sendIncomingMessage(sendMessg, idChat, text);
 				}
 			} else if (update.hasCallbackQuery()) {
 				
-				String callData = update.getCallbackQuery().getData();
-				String messText = "", timeText = "";
-				String text = "";
-				int elapsedTime;				
-				long idChat = update.getCallbackQuery().getMessage().getChatId();
-				int lenChatId = update.getCallbackQuery().getMessage().getChatId().toString().length();
-				
-				if (callData.equals("recordMessageYes")) {
-					
-					for (int i = 0; i < recMessage.size(); i++)
-						
-						if (recMessage.get(i).subSequence(0, lenChatId).equals(update.getCallbackQuery().getMessage().getChatId().toString())) {
-							
-							messText = recMessage.get(i).substring(lenChatId + 2);
-							break;
-						}							
-					for (int i = 0; i < recTime.size(); i++)
-						
-						if (recTime.get(i).subSequence(0, lenChatId).equals(update.getCallbackQuery().getMessage().getChatId().toString())) {
-														
-							timeText = recTime.get(i).substring(lenChatId);
-							break;
-						}										
-					try {
-				
-						elapsedTime = Integer.parseInt(timeText.toString());
-						ControlTiming.timeTable.add(elapsedTime);
-						ControlTiming.counter++;
-						
-						text = "پیام شما ذخیره شد";					
-						sendIncomingMessage(sendMessg, idChat, text);
-						
-						String query = "insert into information values (default, ?, ?, ?)";
-						prSt = con.prepareStatement(query);
-						prSt.setLong(1, idChat);										// chatId
-						prSt.setString(2, messText);									// message
-						prSt.setInt(3, elapsedTime);									// time
-						prSt.executeUpdate();						
-					} catch (Exception e) {
-				
-						e.printStackTrace();
-					} finally {
-				
-						try {
-					
-							prSt.close();
-						} catch (Exception e) {
-					
-							e.printStackTrace();
-						}
-					}
-				} else if (callData.equals("recordMessageNo")) {
-					
-					text = "پیام شما ذخیره نشد";					
-					sendIncomingMessage(sendMessg, idChat, text);
-				}
+				callBackQuery(update, sendMessg);				
 			}
 		} catch (Exception e){
 			
 			e.printStackTrace();			
 		}
 	}
-	
+		
 	private void createInitialMarkup(SendMessage sendMessg, long idChat, String text) {
 		
 		ReplyKeyboardMarkup keyMarkup = new ReplyKeyboardMarkup();
@@ -415,7 +423,63 @@ public class MyBot extends TelegramLongPollingBot {
 		sendMessg.setReplyMarkup(keyMarkup);
 		sendIncomingMessage(sendMessg, idChat, text);
 	}
-	
+
+	private void recorded(SendMessage sendMessg, long idChat) {
+
+		String message = "پیام های ثبت شده شما به شکل زیر می باشد \n\n";		
+		String querySel = "select * from information";
+		int cnt = 1;
+
+		ReplyKeyboardRemove removeKeyMarkup = new ReplyKeyboardRemove();
+		ReplyKeyboardMarkup keyMarkup = new ReplyKeyboardMarkup();
+		List<KeyboardRow> key = new ArrayList<>();
+		KeyboardRow row = new KeyboardRow();
+		
+		String textMarkup = EmojiParser.parseToUnicode(" :arrow_left: برگشت");
+		row.add(textMarkup);				
+		textMarkup = EmojiParser.parseToUnicode(" :red_circle: حذف همه");
+		row.add(textMarkup);		
+		textMarkup = EmojiParser.parseToUnicode(" :heavy_minus_sign: حذف تکی ");
+		row.add(textMarkup);
+		key.add(row);
+															
+		keyMarkup.setKeyboard(key);
+		keyMarkup.setResizeKeyboard(true);
+		
+		sendMessg.setReplyMarkup(removeKeyMarkup);
+		sendMessg.setReplyMarkup(keyMarkup);
+		
+		try {
+			
+			rs = st.executeQuery(querySel);
+			while (rs.next()) {
+				
+				if (rs.getInt("chatId") == idChat) {
+					
+					message += cnt + ".\n پیام: \n" + rs.getString("message") + "\n زمان: \n"
+							+ rs.getString("textTime") + "\n" + "id=" + rs.getInt("Id") + "\n\n";
+					cnt++;
+				}
+			}						
+		} catch (Exception e) {
+			
+			e.printStackTrace();
+		} finally {
+			
+			try {
+				
+				rs.close();		
+			} catch (Exception e) {
+				
+				e.printStackTrace();
+			}
+		}
+		
+		if (cnt == 1) message = "شما پیام ثبت شده ندارید \n"
+				+ "برای ثبت پیام جدید به صفحه قبل برگشته و گزینه افزودن را انتخاب نمائید \n";
+		sendIncomingMessage(sendMessg, idChat, message);
+	}
+
 	private void recordMessage(SendMessage sendMessg, long idChat, Message message) throws InvalidObjectException {
 		
 		String messText = "", timeText = "";
@@ -433,13 +497,13 @@ public class MyBot extends TelegramLongPollingBot {
 				messText = recMessage.get(i).substring(lenChatId + 2);
 				break;
 			}				
-//		if (messText == "") messText = "شما یک یادآور برای این زمان ثبت کرده بودید";		
+		if (messText == "") messText = "شما یک یادآور برای این زمان ثبت کرده بودید";		
 		for (int i = 0; i < recTime.size(); i++)
 			
 			if (recTime.get(i).subSequence(0, lenChatId).equals(message.getChatId().toString())) {
 				
 				inTime = i;
-				timeText = recTime.get(i).substring(lenChatId + 2);
+				timeText = recTime.get(i).subSequence(lenChatId+2, lenChatId+18).toString();
 				break;
 			}		
 		try {
@@ -481,7 +545,7 @@ public class MyBot extends TelegramLongPollingBot {
                 		+ "\n\n"
                 		+ "آیا مایل به ذخیره یادآور هستید؟ \n";
 				                
-                recTime.set(inTime, (idChat + "" + elapsedTime));
+                recTime.set(inTime, (idChat + "ok" + timeText + elapsedTime));
                 sendIncomingMessage(sendMessg, idChat, text);                				
 			}
 		} catch (Exception e) {
@@ -492,6 +556,162 @@ public class MyBot extends TelegramLongPollingBot {
 		
 			sendIncomingMessage(sendMessg, idChat, text); 
 		}
+	}
+		
+	@SuppressWarnings("deprecation")
+	private void callBackQuery(Update update, SendMessage sendMessg) {
+		
+		String callData = update.getCallbackQuery().getData();
+		long idChat = update.getCallbackQuery().getMessage().getChatId();
+		long message_id = update.getCallbackQuery().getMessage().getMessageId();
+		int lenChatId = update.getCallbackQuery().getMessage().getChatId().toString().length();		
+		String messText = "", timeText = "", elapsedTimeText = "";
+		String text = "", editText = "";
+		int elapsedTime;
+		boolean reg = true;
+		
+		if (callData.equals("recordMessageYes")) {
+			
+			for (int i = 0; i < recMessage.size(); i++)
+				
+				if (recMessage.get(i).subSequence(0, lenChatId).equals(update.getCallbackQuery().getMessage().getChatId().toString())) {
+					
+					messText = recMessage.get(i).substring(lenChatId + 2);
+					break;
+				}
+			if (messText == "") messText = "شما یک یادآور برای این زمان ثبت کرده بودید";
+			for (int i = 0; i < recTime.size(); i++)
+				
+				if (recTime.get(i).subSequence(0, lenChatId).equals(update.getCallbackQuery().getMessage().getChatId().toString())) {
+												
+					timeText = recTime.get(i).subSequence(lenChatId + 2, lenChatId+18).toString();
+					elapsedTimeText = recTime.get(i).substring(lenChatId+18);
+					break;
+				}										
+			try {
+				
+				elapsedTime = Integer.parseInt(elapsedTimeText);						
+				String query = "insert into information values (default, ?, ?, ?, ?)";
+				prSt = con.prepareStatement(query);
+				prSt.setLong(1, idChat);										// chatId
+				prSt.setString(2, messText);									// message
+				prSt.setString(3, timeText);									// time text
+				prSt.setInt(4, elapsedTime);									// time
+				prSt.executeUpdate();
+										
+				ControlTiming.timeTable.add(elapsedTime);
+				ControlTiming.counter++;							
+			} catch (Exception e) {
+		
+				reg = false;
+				e.printStackTrace();
+			} finally {
+		
+				try {
+			
+					prSt.close();
+				} catch (Exception e) {
+			
+					e.printStackTrace();
+				}
+			}
+			
+			text = reg ? "پیام شما ذخیره شد":"پیام شما ذخیره نشد \n"
+					+ "لطفا پیامی مناسب ارسال نمائید";
+			sendIncomingMessage(sendMessg, idChat, text);
+			editText = "یادآور شما به شکل زیر می باشد: \n\n"
+	        		+ "پیام: \n" + messText
+	        		+ "\n\n"
+	        		+ "زمان: \n" + timeText
+	        		+ "\n";
+		} else if (callData.equals("recordMessageNo")) {
+			
+			for (int i = 0; i < recMessage.size(); i++)
+				
+				if (recMessage.get(i).subSequence(0, lenChatId).equals(update.getCallbackQuery().getMessage().getChatId().toString())) {
+					
+					messText = recMessage.get(i).substring(lenChatId + 2);
+					break;
+				}
+			if (messText == "") messText = "شما یک یادآور برای این زمان ثبت کرده بودید";
+			for (int i = 0; i < recTime.size(); i++)
+				
+				if (recTime.get(i).subSequence(0, lenChatId).equals(update.getCallbackQuery().getMessage().getChatId().toString())) {
+												
+					timeText = recTime.get(i).subSequence(lenChatId, lenChatId+16).toString();
+					break;
+				}
+			text = "پیام شما ذخیره نشد";
+			sendIncomingMessage(sendMessg, idChat, text);
+			editText = "یادآور شما به شکل زیر می باشد: \n\n"
+	        		+ "پیام: \n" + messText
+	        		+ "\n\n"
+	        		+ "زمان: \n" + timeText
+	        		+ "\n";
+		} else if (callData.equals("delMessageYes")) {
+						
+			String querySel = "select * from information";
+			String queryDel;
+			int cnt = 0, ex = 1;
+			
+			try {
+				
+				rs = st.executeQuery(querySel);
+				while (rs.next()) {
+					
+					if (rs.getInt("chatId") == idChat) {
+						
+						queryDel = "delete from information where Id = " + rs.getInt("Id");
+						prSt = con.prepareStatement(queryDel);
+						prSt.execute();
+						ControlTiming.counter--;
+						Thread.sleep(500);
+						ControlTiming.timeTable.remove(cnt-ex);
+						ex++;
+						System.out.println(cnt);
+						
+					}
+					cnt++;
+				}
+			} catch (Exception e) {
+				
+				reg = false;
+				e.printStackTrace();
+			} finally {
+				
+				try {
+					
+					rs.close();	
+					prSt.close();
+				} catch (Exception e) {
+										
+				}
+			}
+			editText = "آیا می خواهید همه یادآورهای ذخیره شده را حذف کنید؟ \n";
+			text = reg ? "پیام های شما حذف شدند" : "پیام های شما حذف نشدند\n"
+					+ "دوباره تلاش کنید";
+			if (ex == 1) text = "هیچ پیامی یافت نشد";
+			sendIncomingMessage(sendMessg, idChat, text);
+			
+//			for (int i = 0; i < ControlTiming.counter; i++)
+				
+		} else if (callData.equals("delMessageNo")) {
+			
+			editText = "آیا می خواهید همه یادآورهای ذخیره شده را حذف کنید؟ \n";
+		}
+		
+		EditMessageText editMessg = new EditMessageText();
+		
+		editMessg.setChatId(idChat);
+		editMessg.setMessageId((int)message_id);
+		editMessg.setText(editText);
+		try {
+			
+            editMessageText(editMessg); 
+        } catch (TelegramApiException e) {
+        	
+            e.printStackTrace();
+        }
 	}
 	
 	@SuppressWarnings("deprecation")
