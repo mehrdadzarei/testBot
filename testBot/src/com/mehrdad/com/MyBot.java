@@ -34,6 +34,7 @@ public class MyBot extends TelegramLongPollingBot {
 	private ResultSet rs;
 	private static Vector<String> recMessage = new Vector<String>(100,2);
 	private static Vector<String> recTime = new Vector<String>(100,2);
+	private static Vector<String> delMessage = new Vector<String>(100,2);
 	// Julian time for 1970/01/01 is 1348/10/11
 	private static final int y0J = 1348;
 	private static final int m0J = 10;
@@ -202,9 +203,10 @@ public class MyBot extends TelegramLongPollingBot {
 								  "\nخوش اومدی به بات تلگرام یادآور" + " :rose:" +
 								  "\nدر این بات شما می توانید قرار ملاقات ها، تولد دوستان و ... را ثبت کنید و در زمانی که می خواهید به شما اطلاع می دهم" +
 								  "\nروز خوبی داشته باشین" +
-								  "\n");
+								  "\n\n");
 													
-					createInitialMarkup(sendMessg, idChat, text);					
+					createInitialMarkup(sendMessg, idChat, text);
+					help(sendMessg, idChat);
 					try {
 						
 						String query = "insert into initialInformation values (default, ?, ?)";
@@ -230,15 +232,13 @@ public class MyBot extends TelegramLongPollingBot {
 						
 					text = EmojiParser.parseToUnicode("برای ثبت پیام جدید از گزینه های زیر استفاده نمائید :point_down: ");
 					
-					createAddingMarkup(sendMessg, idChat, text);										
+					createAddingMarkup(sendMessg, idChat, text);
 				} else if (mesgtime.equals("ه ها")) {
 					
 					recorded(sendMessg, idChat);
 				} else if (mesgtime.equals("هنما")) {
 					
-					text = "راهنما";
-					
-					sendIncomingMessage(sendMessg, idChat, text);				
+					help(sendMessg, idChat);					
 				} else if (mesgtime.equals("پیام")) {
 					
 					text = "لطفا پیام مورد نظر خود را بنویسید و ارسال کنید\n";
@@ -249,7 +249,7 @@ public class MyBot extends TelegramLongPollingBot {
 				} else if (mesgtime.equals("زمان")) {
 						
 					text = "لطفا زمان مورد نظر خود را مانند نمونه ارسال نمائید: \n\n"
-							+ "1396/06/04-15:04\n";
+							+ "1396/06/04-15:04\n\n";
 
 					textTime = idChat + "";
 					recTime.add(textTime);					
@@ -273,7 +273,7 @@ public class MyBot extends TelegramLongPollingBot {
 						
 						text = "زمان شما نادرست است \n"
 								+ "لطفا مانند نمونه زمان را ارسال نمائید: \n\n"
-								+ "1396/06/04-15:04\n";
+								+ "1396/06/04-15:04\n\n";
 					else
 						
 						recTime.add(textTime);
@@ -297,35 +297,43 @@ public class MyBot extends TelegramLongPollingBot {
 				} else if (mesgtime.equals(" تکی")) {
 					
 					text = "لطفا آیدی پیام مورد نظر را مانند نمونه زیر ارسال نمائید \n"
-							+ "id=5\n";
+							+ "id=5\n\n";
 										
 					sendIncomingMessage(sendMessg, idChat, text);					
-				} else if (messgText.substring(0, 3).equals("id=")) {
+				} else if (messgText.substring(0, 3).toLowerCase().equals("id=")) {
 										
-					String querySel = "select * from information";
-					String queryDel = "delete from information where Id = " + messgText.substring(3);
+					String querySel = "select * from information";					
 					boolean del = false;
-					int cnt = 0;
 					
 					try {
 						
 						rs = st.executeQuery(querySel);
-						while (rs.next()) {
+						while (rs.next())
 							
 							if (rs.getInt("chatId") == idChat)
 								
 								if (rs.getInt("Id") == Integer.parseInt(messgText.substring(3))) {
 									
-									prSt = con.prepareStatement(queryDel);
-									prSt.execute();
+									text = "آیا می خواهید این یادآور را حذف کنید؟ \n\n"
+											+ "پیام: \n" + rs.getString("message")
+											+ "\n\n زمان: \n" + rs.getString("textTime") + "\n\n";
+									
+									InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+					                List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+					                List<InlineKeyboardButton> rowInline = new ArrayList<>();
+					                
+					                rowInline.add(new InlineKeyboardButton().setText("خیر").setCallbackData("delOneMessageNo"));
+					                rowInline.add(new InlineKeyboardButton().setText("بله").setCallbackData("delOneMessageYes"));
+					                // Set the keyboard to the markup
+					                rowsInline.add(rowInline);
+					                // Add it to the message
+					                markupInline.setKeyboard(rowsInline);
+					                sendMessg.setReplyMarkup(markupInline);
+					                
+					                delMessage.add(idChat + "" + rs.getInt("Id"));
 									del = true;
-									ControlTiming.counter--;
-									Thread.sleep(500);
-									ControlTiming.timeTable.remove(cnt);									
 									break;
 								}
-							cnt++;
-						}
 					} catch (Exception e) {
 						
 						e.printStackTrace();
@@ -334,12 +342,11 @@ public class MyBot extends TelegramLongPollingBot {
 						try {
 							
 							rs.close();	
-							prSt.close();
 						} catch (Exception e) {
 							
 						}
 					}
-					text = del ? "پیام شما حذف شد" : "پیام شما یافت نشد";
+					text = del ? text : "پیام شما یافت نشد";
 					sendIncomingMessage(sendMessg, idChat, text);					
 				} else if (mesgtime.equals(" همه")) {
 					
@@ -426,7 +433,7 @@ public class MyBot extends TelegramLongPollingBot {
 
 	private void recorded(SendMessage sendMessg, long idChat) {
 
-		String message = "پیام های ثبت شده شما به شکل زیر می باشد \n\n";		
+		String message = EmojiParser.parseToUnicode("پیام های ثبت شده شما به شکل زیر می باشد: \n\n");		
 		String querySel = "select * from information";
 		int cnt = 1;
 
@@ -456,8 +463,8 @@ public class MyBot extends TelegramLongPollingBot {
 				
 				if (rs.getInt("chatId") == idChat) {
 					
-					message += cnt + ".\n پیام: \n" + rs.getString("message") + "\n زمان: \n"
-							+ rs.getString("textTime") + "\n" + "id=" + rs.getInt("Id") + "\n\n";
+					message += cnt + ".\n پیام: \n" + rs.getString("message") + "\n\n زمان: \n"
+							+ rs.getString("textTime") + "\n\n" + "id=" + rs.getInt("Id") + "\n\n";
 					cnt++;
 				}
 			}						
@@ -552,7 +559,7 @@ public class MyBot extends TelegramLongPollingBot {
 			
 			text = "زمان شما نادرست است \n"
 					+ "لطفا مانند نمونه زمان را ارسال نمائید: \n\n"
-					+ "1396/06/04-15:04\n";
+					+ "1396/06/04-15:04\n\n";
 		
 			sendIncomingMessage(sendMessg, idChat, text); 
 		}
@@ -566,7 +573,7 @@ public class MyBot extends TelegramLongPollingBot {
 		long message_id = update.getCallbackQuery().getMessage().getMessageId();
 		int lenChatId = update.getCallbackQuery().getMessage().getChatId().toString().length();		
 		String messText = "", timeText = "", elapsedTimeText = "";
-		String text = "", editText = "";
+		String text = "", editText = update.getCallbackQuery().getMessage().getText();
 		int elapsedTime;
 		boolean reg = true;
 		
@@ -618,12 +625,7 @@ public class MyBot extends TelegramLongPollingBot {
 			
 			text = reg ? "پیام شما ذخیره شد":"پیام شما ذخیره نشد \n"
 					+ "لطفا پیامی مناسب ارسال نمائید";
-			sendIncomingMessage(sendMessg, idChat, text);
-			editText = "یادآور شما به شکل زیر می باشد: \n\n"
-	        		+ "پیام: \n" + messText
-	        		+ "\n\n"
-	        		+ "زمان: \n" + timeText
-	        		+ "\n";
+			sendIncomingMessage(sendMessg, idChat, text);			
 		} else if (callData.equals("recordMessageNo")) {
 			
 			for (int i = 0; i < recMessage.size(); i++)
@@ -642,17 +644,12 @@ public class MyBot extends TelegramLongPollingBot {
 					break;
 				}
 			text = "پیام شما ذخیره نشد";
-			sendIncomingMessage(sendMessg, idChat, text);
-			editText = "یادآور شما به شکل زیر می باشد: \n\n"
-	        		+ "پیام: \n" + messText
-	        		+ "\n\n"
-	        		+ "زمان: \n" + timeText
-	        		+ "\n";
+			sendIncomingMessage(sendMessg, idChat, text);			
 		} else if (callData.equals("delMessageYes")) {
 						
 			String querySel = "select * from information";
 			String queryDel;
-			int cnt = 0, ex = 1;
+			int cnt = 0, ex = 1, shift = 0;
 			
 			try {
 				
@@ -665,11 +662,10 @@ public class MyBot extends TelegramLongPollingBot {
 						prSt = con.prepareStatement(queryDel);
 						prSt.execute();
 						ControlTiming.counter--;
-						Thread.sleep(500);
-						ControlTiming.timeTable.remove(cnt-ex);
-						ex++;
-						System.out.println(cnt);
-						
+						Thread.sleep(10);						
+						ControlTiming.timeTable.remove(cnt-shift);
+						shift++;
+						ex++;						
 					}
 					cnt++;
 				}
@@ -686,18 +682,65 @@ public class MyBot extends TelegramLongPollingBot {
 				} catch (Exception e) {
 										
 				}
-			}
-			editText = "آیا می خواهید همه یادآورهای ذخیره شده را حذف کنید؟ \n";
+			}			
 			text = reg ? "پیام های شما حذف شدند" : "پیام های شما حذف نشدند\n"
 					+ "دوباره تلاش کنید";
 			if (ex == 1) text = "هیچ پیامی یافت نشد";
-			sendIncomingMessage(sendMessg, idChat, text);
-			
-//			for (int i = 0; i < ControlTiming.counter; i++)
-				
+			sendIncomingMessage(sendMessg, idChat, text);							
 		} else if (callData.equals("delMessageNo")) {
 			
-			editText = "آیا می خواهید همه یادآورهای ذخیره شده را حذف کنید؟ \n";
+			text = "پیام های شما حذف نشدند";
+			sendIncomingMessage(sendMessg, idChat, text);			
+		} else if (callData.equals("delOneMessageYes")) {
+			
+			String querySel = "select * from information";
+			String queryDel = "delete from information where Id = ";
+			int cnt = 0, id = 0;
+			
+			for (int i=0; i<delMessage.size(); i++)
+				
+				if (delMessage.get(i).substring(0, lenChatId).equals(update.getCallbackQuery().getMessage().getChatId().toString())) {
+					
+					id = Integer.parseInt(delMessage.get(i).substring(lenChatId).toString());
+					break;
+				}			
+			try {
+				
+				rs = st.executeQuery(querySel);
+				while (rs.next()) {
+					
+					if (rs.getInt("Id") == id) {
+						
+						queryDel += id;
+						prSt = con.prepareStatement(queryDel);
+						prSt.execute();
+						ControlTiming.counter--;
+						Thread.sleep(10);						
+						ControlTiming.timeTable.remove(cnt);						
+					}
+					cnt++;
+				}
+			} catch (Exception e) {
+				
+				reg = false;
+				e.printStackTrace();
+			} finally {
+				
+				try {
+					
+					rs.close();	
+					prSt.close();
+				} catch (Exception e) {
+										
+				}
+			}			
+			text = reg ? "پیام  شما حذف شد" : "پیام شما حذف نشد\n"
+					+ "دوباره تلاش کنید";
+			sendIncomingMessage(sendMessg, idChat, text);
+		} else if (callData.equals("delOneMessageNo")) {
+			
+			text = "پیام شما حذف نشد";
+			sendIncomingMessage(sendMessg, idChat, text);			
 		}
 		
 		EditMessageText editMessg = new EditMessageText();
@@ -712,6 +755,31 @@ public class MyBot extends TelegramLongPollingBot {
         	
             e.printStackTrace();
         }
+	}
+	
+	private void help(SendMessage sendMessg, long idChat) {
+		
+		String text = EmojiParser.parseToUnicode(
+				"برای ثبت یادآور ابتدا گزینه #افزودن :heavy_plus_sign: را انتخاب کنید \n\n"
+				
+				+ "حال می توانید با انتخاب گزینه #پیام :email:، پیام مورد \n"
+				+ "نظری که می خواهید دریافت کنید را وارد کنید \n"
+				+ "و برای ثبت زمان می توانید با انتخاب گزینه  \n"
+				+ "#زمان :alarm_clock:، زمانی که می خواهید پیام را دریافت \n"
+				+ "کنید وارد کنید. در انتها گزینه #ذخیره :heavy_plus_sign: را \n"
+				+ "انتخاب کنید تا یادآور شما ذخیره شود. \n\n"
+				
+				+ "برای مشاهده و مدیریت یادآورهای ثبت \n"
+				+ "شده می توانید گزینه #ثبت_شده_ها :bookmark_tabs: را \n"
+				+ "انتخاب کنید و یادآورهای ثبت شده را \n"
+				+ "مشاهده کنید. حال با انتخاب گزینه \n"
+				+ "#حذف_تکی :heavy_minus_sign: می توانید یکی از یادآورهای \n"
+				+ "ثبت شده را حذف کنید تا در آن زمان \n"
+				+ "ثبت شده پیامی دریافت نکنید. و برای \n"
+				+ "حذف همه ی یادآورهای ثبت شده می توانید \n"
+				+ "گزینه #حذف_همه :red_circle: را انتخاب کنید. \n\n");
+		
+		sendIncomingMessage(sendMessg, idChat, text);
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -740,9 +808,6 @@ public class MyBot extends TelegramLongPollingBot {
 			rs = st.executeQuery(querySel);
 			if (rs.next()) {
 			
-				int id;
-				
-				id = rs.getInt("Id");
 				messageSend.setText(rs.getString("message"));
 				messageSend.setChatId(rs.getLong("chatId"));
 
@@ -754,7 +819,7 @@ public class MyBot extends TelegramLongPollingBot {
 					e.printStackTrace();
 				}
 				
-				queryDel = "delete from information where Id = " + id;
+				queryDel = "delete from information where Id = " + rs.getInt("Id");
 				prSt = con.prepareStatement(queryDel);
 				prSt.execute();
 			}
