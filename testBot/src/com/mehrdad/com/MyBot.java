@@ -198,6 +198,7 @@ public class MyBot extends TelegramLongPollingBot {
 				if (messgText.equals("/start")) {
 															
 					String firstName = message.getChat().getFirstName();
+					String userName = message.getChat().getUserName();
 					text = EmojiParser.parseToUnicode(
 								  "سلام " + firstName + " :blush:" +
 								  "\nخوش اومدی به بات تلگرام یادآور" + " :rose:" +
@@ -205,15 +206,15 @@ public class MyBot extends TelegramLongPollingBot {
 								  "\nروز خوبی داشته باشین" +
 								  "\n\n");
 													
-					createInitialMarkup(sendMessg, idChat, text);
-					help(sendMessg, idChat);
+					createInitialMarkup(sendMessg, idChat, text);					
 					try {
 						
 						String query = "insert into initialInformation values (default, ?, ?)";
 						
+						if (userName == null) userName = "None";
 						prSt = con.prepareStatement(query);
 						prSt.setLong(1, idChat);										// chatId
-						prSt.setString(2, message.getChat().getUserName());				// userName
+						prSt.setString(2, userName);				// userName
 						prSt.executeUpdate();						
 					} catch (Exception e) {
 				
